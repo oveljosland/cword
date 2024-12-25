@@ -1,1 +1,1 @@
-Test
+Simple text editor project.
