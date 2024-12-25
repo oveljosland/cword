@@ -1,4 +1,6 @@
+#include <cerrno>
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
@@ -6,33 +8,46 @@
 
 struct termios original_termios; // original terminal io settings
 
+void die(const char *s) {
+    perror(s);
+    exit(1);
+}
+
 void disable_raw_mode() {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &original_termios) == -1)
+        die("tcsetattr");
 }
 
 void enable_raw_mode() {
-    tcgetattr(STDIN_FILENO, &original_termios);
+    if (tcgetattr(STDIN_FILENO, &original_termios) == -1)
+        die("tcgetattr");
     atexit(disable_raw_mode); // disable raw mode on exit
 
     struct termios raw = original_termios;
-    raw.c_iflag &= ~(ICRNL | IXON);
+    raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
+    raw.c_cflag |= ~(CS8);
     raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG); 
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1;
  
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
+        die("tcsetattr");
 }
 
 
 int main() {
     enable_raw_mode();
 
-    char c;
-    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
+    while (1) {
+        char c = '\0';
+        if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) die("read");
         if (iscntrl(c)) { // check if c is a control char
-            printf("%d\n", c); // format byte c as decimal
+            printf("%d\r\n", c); // format byte c as decimal
         } else {
-            printf("%d ('%c')\n", c, c); // format byte c as character
+            printf("%d ('%c')\r\n", c, c); // format byte c as character
         }
+        if (c == 'q') break;
     }
 
     return 0;
