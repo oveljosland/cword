@@ -1,3 +1,4 @@
+/*--- includes ---*/
 #include <errno.h>
 #include <ctype.h>
 #include <errno.h>
@@ -6,8 +7,19 @@
 #include <termios.h>
 #include <unistd.h>
 
+
+
+/*--- defines ---*/
+#define CTRL_KEY(k) ((k) & 0x1f) // 0001 1111
+
+
+
+/*--- data ---*/
 struct termios original_termios; // original terminal io settings
 
+
+
+/*--- terminal --- */
 void die(const char *s) {
     perror(s);
     exit(1);
@@ -36,6 +48,8 @@ void enable_raw_mode() {
 }
 
 
+
+/*--- init ---*/
 int main() {
     enable_raw_mode();
 
@@ -47,7 +61,7 @@ int main() {
         } else {
             printf("%d ('%c')\r\n", c, c); // format byte c as character
         }
-        if (c == 'q') break;
+        if (c == CTRL_KEY('q')) break;
     }
 
     return 0;
