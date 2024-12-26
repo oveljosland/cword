@@ -68,21 +68,23 @@ char editor_read_key() {
 }
 
 int get_cursor_position(int *rows, int *cols) {
+    char buffer[32];
+    unsigned int i = 0;
+
     if (write(STDIN_FILENO, "\x1b[6n", 4) != 4) return -1;
 
-    printf("\r\n");
-    char c;
-
-    while (read(STDIN_FILENO, &c, 1) == 1) {
-        if (iscntrl(c)) {
-            printf("%d\r\n", c);
-        } else {
-            printf("%d, ('%c')\r\n", c, c);
-        }
+    while (i < sizeof(buffer) - 1) {
+        if (read(STDIN_FILENO, &buffer[i], 1) != 1) break;
+        if (buffer[i] == 'R') break; // break at R
+        ++i;
     }
-    editor_read_key();
+    buffer[i] = '\0'; // printf expects last bit to be zero
 
-    return -1;
+    /* skip the first value "\x1b" because it wont display in the termnial anyway (interpreted as escape sequence) */
+    if (buffer[0] != '\x1b' || buffer[1] != '[') return -1;
+    if (sscanf(&buffer[2], "%d;%d", rows, cols) != 2) return -1;
+
+    return 0;
 }
 
 
