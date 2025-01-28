@@ -25,7 +25,7 @@ struct editor_config {
 };
 struct editor_config E;
 
-
+/* test */
 
 
 /*--- terminal --- */
